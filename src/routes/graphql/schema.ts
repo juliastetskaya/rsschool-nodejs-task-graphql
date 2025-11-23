@@ -263,6 +263,25 @@ export const CreatePostInput = new GraphQLInputObjectType({
   },
 });
 
+export const CreateProfileInput = new GraphQLInputObjectType({
+  name: 'CreateProfileInput',
+  fields: {
+    isMale: { type: new GraphQLNonNull(GraphQLBoolean) },
+    yearOfBirth: { type: new GraphQLNonNull(GraphQLInt) },
+    userId: { type: new GraphQLNonNull(UUIDType) },
+    memberTypeId: { type: new GraphQLNonNull(MemberTypeIdEnum) },
+  },
+});
+
+export const ChangeProfileInput = new GraphQLInputObjectType({
+  name: 'ChangeProfileInput',
+  fields: {
+    isMale: { type: GraphQLBoolean },
+    yearOfBirth: { type: GraphQLInt },
+    memberTypeId: { type: MemberTypeIdEnum },
+  },
+});
+
 export const ChangePostInput = new GraphQLInputObjectType({
   name: 'ChangePostInput',
   fields: {
@@ -352,9 +371,89 @@ export const MutationsType = new GraphQLObjectType({
         return 'Post deleted';
       },
     },
+    createProfile: {
+      type: new GraphQLNonNull(ProfileType),
+      args: {
+        dto: { type: new GraphQLNonNull(CreateProfileInput) },
+      },
+      resolve: async (_parent, args, context: Context) => {
+        const { prisma } = context;
+
+        return prisma.profile.create({ data: args.dto });
+      },
+    },
+    changeProfile: {
+      type: new GraphQLNonNull(ProfileType),
+      args: {
+        id: { type: new GraphQLNonNull(UUIDType) },
+        dto: { type: new GraphQLNonNull(ChangeProfileInput) },
+      },
+      resolve: async (_parent, args, context: Context) => {
+        const { prisma } = context;
+
+        return prisma.profile.update({
+          where: { id: args.id },
+          data: args.dto,
+        });
+      },
+    },
+    deleteProfile: {
+      type: new GraphQLNonNull(GraphQLString),
+      args: {
+        id: { type: new GraphQLNonNull(UUIDType) },
+      },
+      resolve: async (_parent, args, context: Context) => {
+        const { prisma } = context;
+
+        await prisma.profile.delete({ where: { id: args.id } });
+
+        return 'Profile deleted';
+      },
+    },
+    subscribeTo: {
+      type: new GraphQLNonNull(GraphQLString),
+      args: {
+        userId: { type: new GraphQLNonNull(UUIDType) },
+        authorId: { type: new GraphQLNonNull(UUIDType) },
+      },
+      resolve: async (_parent, args, context: Context) => {
+        const { prisma } = context;
+
+        await prisma.subscribersOnAuthors.create({
+          data: {
+            subscriberId: args.userId,
+            authorId: args.authorId,
+          },
+        });
+
+        return 'Subscribed';
+      },
+    },
+    unsubscribeFrom: {
+      type: new GraphQLNonNull(GraphQLString),
+      args: {
+        userId: { type: new GraphQLNonNull(UUIDType) },
+        authorId: { type: new GraphQLNonNull(UUIDType) },
+      },
+      resolve: async (_parent, args, context: Context) => {
+        const { prisma } = context;
+
+        await prisma.subscribersOnAuthors.delete({
+          where: {
+            subscriberId_authorId: {
+              subscriberId: args.userId,
+              authorId: args.authorId,
+            },
+          },
+        });
+
+        return 'Unsubscribed';
+      },
+    },
   },
 });
 
 export const schema = new GraphQLSchema({
   query: RootQueryType,
+  mutation: MutationsType,
 });
