@@ -8,6 +8,7 @@ import {
   GraphQLEnumType,
   GraphQLList,
   GraphQLBoolean,
+  GraphQLInputObjectType,
 } from 'graphql';
 import type { PrismaClient, Profile, User, SubscribersOnAuthors } from '@prisma/client';
 import { parseResolveInfo, type ResolveTree } from 'graphql-parse-resolve-info';
@@ -232,6 +233,67 @@ export const RootQueryType = new GraphQLObjectType({
         const { loaders } = context;
 
         return loaders.userLoader.load(args.id);
+      },
+    },
+  },
+});
+
+export const CreateUserInput = new GraphQLInputObjectType({
+  name: 'CreateUserInput',
+  fields: {
+    name: { type: new GraphQLNonNull(GraphQLString) },
+    balance: { type: new GraphQLNonNull(GraphQLFloat) },
+  },
+});
+
+export const ChangeUserInput = new GraphQLInputObjectType({
+  name: 'ChangeUserInput',
+  fields: {
+    name: { type: GraphQLString },
+    balance: { type: GraphQLFloat },
+  },
+});
+
+export const MutationsType = new GraphQLObjectType({
+  name: 'Mutations',
+  fields: {
+    createUser: {
+      type: new GraphQLNonNull(UserType),
+      args: {
+        dto: { type: new GraphQLNonNull(CreateUserInput) },
+      },
+      resolve: async (_parent, args, context: Context) => {
+        const { prisma } = context;
+
+        return prisma.user.create({ data: args.dto });
+      },
+    },
+    changeUser: {
+      type: new GraphQLNonNull(UserType),
+      args: {
+        id: { type: new GraphQLNonNull(UUIDType) },
+        dto: { type: new GraphQLNonNull(ChangeUserInput) },
+      },
+      resolve: async (_parent, args, context: Context) => {
+        const { prisma } = context;
+
+        return prisma.user.update({
+          where: { id: args.id },
+          data: args.dto,
+        });
+      },
+    },
+    deleteUser: {
+      type: new GraphQLNonNull(GraphQLString),
+      args: {
+        id: { type: new GraphQLNonNull(UUIDType) },
+      },
+      resolve: async (_parent, args, context: Context) => {
+        const { prisma } = context;
+
+        await prisma.user.delete({ where: { id: args.id } });
+
+        return 'User deleted';
       },
     },
   },
