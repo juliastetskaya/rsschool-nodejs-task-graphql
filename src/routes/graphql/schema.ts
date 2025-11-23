@@ -254,6 +254,23 @@ export const ChangeUserInput = new GraphQLInputObjectType({
   },
 });
 
+export const CreatePostInput = new GraphQLInputObjectType({
+  name: 'CreatePostInput',
+  fields: {
+    title: { type: new GraphQLNonNull(GraphQLString) },
+    content: { type: new GraphQLNonNull(GraphQLString) },
+    authorId: { type: new GraphQLNonNull(UUIDType) },
+  },
+});
+
+export const ChangePostInput = new GraphQLInputObjectType({
+  name: 'ChangePostInput',
+  fields: {
+    title: { type: GraphQLString },
+    content: { type: GraphQLString },
+  },
+});
+
 export const MutationsType = new GraphQLObjectType({
   name: 'Mutations',
   fields: {
@@ -294,6 +311,45 @@ export const MutationsType = new GraphQLObjectType({
         await prisma.user.delete({ where: { id: args.id } });
 
         return 'User deleted';
+      },
+    },
+    createPost: {
+      type: new GraphQLNonNull(PostType),
+      args: {
+        dto: { type: new GraphQLNonNull(CreatePostInput) },
+      },
+      resolve: async (_parent, args, context: Context) => {
+        const { prisma } = context;
+
+        return prisma.post.create({ data: args.dto });
+      },
+    },
+    changePost: {
+      type: new GraphQLNonNull(PostType),
+      args: {
+        id: { type: new GraphQLNonNull(UUIDType) },
+        dto: { type: new GraphQLNonNull(ChangePostInput) },
+      },
+      resolve: async (_parent, args, context: Context) => {
+        const { prisma } = context;
+
+        return prisma.post.update({
+          where: { id: args.id },
+          data: args.dto,
+        });
+      },
+    },
+    deletePost: {
+      type: new GraphQLNonNull(GraphQLString),
+      args: {
+        id: { type: new GraphQLNonNull(UUIDType) },
+      },
+      resolve: async (_parent, args, context: Context) => {
+        const { prisma } = context;
+
+        await prisma.post.delete({ where: { id: args.id } });
+
+        return 'Post deleted';
       },
     },
   },
